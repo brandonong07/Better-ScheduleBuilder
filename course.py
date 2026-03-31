@@ -4,6 +4,7 @@ class Course:
         self.code = code
         self.units = units
         self.description = description
+
 courses = {
     
 }  

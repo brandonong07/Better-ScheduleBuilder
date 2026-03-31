@@ -10,8 +10,16 @@ soup = BeautifulSoup(r.content, 'html.parser')
 soup.find_all("div", class_="courseblock")
 
 
-sta10code = soup.find_all("span", class_="detail-code")[0].text
-sta10title = soup.find_all("span", class_="detail-title")[0].text
-sta10units = soup.find_all("span", class_="detail-hours_html")[0].text
+# def __init__(self, name, code, units, description):
+blocks = soup.find_all("div", class_="courseblock")
+for block in blocks:
+    courseCode = block.find("span", class_="detail-code").text
+    courseName = block.find("span", class_="detail-title").text
+    courseUnits = block.find("span", class_="detail-hours_html").text
+    courseDesc = block.find("p", class_="courseblockextra").text
 
-print(sta10units)
+    courseCode = courseCode.replace(" ", "")
+    courseName = courseName.replace("—", "").strip()
+
+    courseObj = course.Course(courseName, courseCode, courseUnits, courseDesc)
+    course.courses[courseCode] = courseObj
