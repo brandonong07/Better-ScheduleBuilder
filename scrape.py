@@ -2,12 +2,63 @@ from bs4 import BeautifulSoup
 from re import *
 from json import *
 
+import re
 import course
 import requests
     
 r = requests.get("https://catalog.ucdavis.edu/courses-subject-code/sta/")
 soup = BeautifulSoup(r.content, 'html.parser')
 soup.find_all("div", class_="courseblock")
+
+import re
+
+def clean_prereq_text(text):
+    if not text:
+        return None
+
+    text = text.replace("\xa0", " ")
+    text = text.replace("Prerequisite(s):", "").strip()
+
+    # Separate course code from grade requirement
+    text = re.sub(
+        r'([A-Z]{2,5}\s*\d+[A-Z]*)([A-F][+-]?)\s*-\s*or better',
+        r'\1 \2- or better',
+        text
+    )
+
+    # Fix glued connectors like orSTA / andMAT
+    text = re.sub(r'(or|and)([A-Z]{2,5}\s*\d)', r'\1 \2', text)
+    text = re.sub(r'([A-Z]{2,5}\s*\d+[A-Z]*)(or|and)', r'\1 \2', text)
+
+    # Add missing space after semicolon/comma when glued
+    text = re.sub(r';(?=\S)', '; ', text)
+    text = re.sub(r',(?=\S)', ', ', text)
+
+    # Add missing space before advisory words when glued to course codes
+    text = re.sub(r'([A-Z]{2,5}\s*\d+[A-Z]*)(strongly recommended)', r'\1 \2', text)
+    text = re.sub(r'([A-Z]{2,5}\s*\d+[A-Z]*)(recommended)', r'\1 \2', text)
+    text = re.sub(r'([A-Z]{2,5}\s*\d+[A-Z]*)(desirable)', r'\1 \2', text)
+    text = re.sub(r'([A-Z]{2,5}\s*\d+[A-Z]*)(preferred)', r'\1 \2', text)
+
+    # Normalize "Consent of instructor. Graduate standing." style cases
+    text = re.sub(r'Consent of instructor\.\s*Graduate standing\.', 
+                  'Consent of instructor; graduate standing.', text)
+
+    # Normalize whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    # Remove extra spaces before punctuation
+    text = re.sub(r'\s+([,.;])', r'\1', text)
+
+    # Normalize spaces just inside parentheses
+    text = re.sub(r'\(\s+', '(', text)
+    text = re.sub(r'\s+\)', ')', text)
+
+    # Normalize None
+    if text.lower() == "none":
+        return "None"
+
+    return text
 
 # scrapes courses and adds them to the courses dictionary in course.py
 def scrapeCourses():
@@ -37,7 +88,7 @@ def scrapeCourses():
                     if "Course Description" in label_text:
                         courseDesc = result
                     elif "Prerequisite" in label_text:
-                        coursePreReqs = result
+                        coursePreReqs = clean_prereq_text(result)
             
             # Debugging
             # First, find the span with class "detail-code" within the li element
@@ -72,7 +123,7 @@ def scrapeCourses():
             courseName = block.find("span", class_="detail-title").text
             courseUnits = block.find("span", class_="detail-hours_html").text
             coursePreReqsTag = block.find("p", class_="detail-prerequisite")
-            coursePreReqs = coursePreReqsTag.get_text(" ", strip=True) if coursePreReqsTag else None
+            coursePreReqs = clean_prereq_text(coursePreReqsTag.get_text(" ", strip=True)) if coursePreReqsTag else None
             
             courseCode = courseCode.replace(" ", "")
             courseName = courseName.replace("—", "").strip()
@@ -80,5 +131,7 @@ def scrapeCourses():
         courseObj = course.Course(courseName, courseCode, courseUnits, courseDesc, coursePreReqs)
         course.courses[courseCode] = courseObj
 
-print(course.courses["STA108"].prerequisites)
 
+scrapeCourses()
+for key in course.courses:
+    print(course.courses[key].prerequisites)
