@@ -1,9 +1,10 @@
 class Course:
-    def __init__(self, name, code, units, description):
+    def __init__(self, name, code, units, description, prerequisites=None):
         self.name = name
         self.code = code
         self.units = units
         self.description = description
+        self.prerequisites = prerequisites
 
 courses = {
     
