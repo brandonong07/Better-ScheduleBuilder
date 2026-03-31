@@ -17,6 +17,7 @@ for block in blocks:
     
     coursePreReqs = None
     header_li = None
+    
     # Checking for outdated courses
     if "This version has ended;" in courseDesc:
         subBlock = block.find("div", class_="courseblockextra")
@@ -37,7 +38,10 @@ for block in blocks:
                     courseDesc = result
                 elif "Prerequisite" in label_text:
                     coursePreReqs = result
+        
+        # Debugging
         print(header_li.find("span", class_="detail-code").text)
+    
     else:
         courseCode = block.find("span", class_="detail-code").text
         courseName = block.find("span", class_="detail-title").text
