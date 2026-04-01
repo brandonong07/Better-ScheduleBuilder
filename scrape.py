@@ -146,6 +146,7 @@ def scrapeCourses(session, website=None):
         courseObj = course.Course(courseName, courseCode, courseUnits, courseDesc, coursePreReqs)
         course.courses[courseCode] = courseObj
 
+'''
 session = requests.Session()
 websiteList = get_course_links(session)
 
@@ -158,3 +159,4 @@ data = {code: course.to_dict() for code, course in course.courses.items()}
 
 with open("courses.json", "w") as f:
     json.dump(data, f, indent=2)
+'''
