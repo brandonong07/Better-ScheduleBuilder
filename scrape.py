@@ -1,16 +1,9 @@
 from bs4 import BeautifulSoup
-from re import *
-from json import *
-
+import json
 import re
 import course
 import requests
-    
-r = requests.get("https://catalog.ucdavis.edu/courses-subject-code/sta/")
-soup = BeautifulSoup(r.content, 'html.parser')
-soup.find_all("div", class_="courseblock")
 
-import re
 
 def clean_prereq_text(text):
     if not text:
@@ -60,8 +53,30 @@ def clean_prereq_text(text):
 
     return text
 
+def get_course_links(session):
+    base = "https://catalog.ucdavis.edu"
+    website = base + "/courses-subject-code/"
+    r = session.get(website, timeout=10)
+    soup = BeautifulSoup(r.content, 'html.parser')
+
+    course_links = []
+
+    for link in soup.find_all('a', href=True):
+        href = link['href']
+
+        if href.startswith("/courses-subject-code/") and href != "/courses-subject-code/" and not href.endswith(".pdf"):
+            full_link = base + href
+            course_links.append(full_link)
+
+    return list(dict.fromkeys(course_links))
+
 # scrapes courses and adds them to the courses dictionary in course.py
-def scrapeCourses():
+def scrapeCourses(session, website=None):
+    if website is None:
+        website = "https://catalog.ucdavis.edu/courses-subject-code/sta/"
+    r = requests.get(website, timeout=10)
+    soup = BeautifulSoup(r.content, 'html.parser')
+
     blocks = soup.find_all("div", class_="courseblock")
     for block in blocks:
         courseDesc = block.find("p", class_="courseblockextra").text
@@ -131,7 +146,15 @@ def scrapeCourses():
         courseObj = course.Course(courseName, courseCode, courseUnits, courseDesc, coursePreReqs)
         course.courses[courseCode] = courseObj
 
+session = requests.Session()
+websiteList = get_course_links(session)
 
-scrapeCourses()
-for key in course.courses:
-    print(course.courses[key].prerequisites)
+for website in websiteList:
+    print("Scraping:" + website)
+    scrapeCourses(session, website)
+
+# export here
+data = {code: course.to_dict() for code, course in course.courses.items()}
+
+with open("courses.json", "w") as f:
+    json.dump(data, f, indent=2)
