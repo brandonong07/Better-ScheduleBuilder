@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 import json
 import re
-import course
+import course as course
 import requests
 
 
@@ -134,6 +134,7 @@ def scrapeCourses(session, website=None):
             courseName = courseName.replace("—", "").strip()
 
         else:
+            # Main Logic if it's not an outdated course
             courseCode = block.find("span", class_="detail-code").text
             courseName = block.find("span", class_="detail-title").text
             courseUnits = block.find("span", class_="detail-hours_html").text
